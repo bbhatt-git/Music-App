@@ -52,7 +52,7 @@ function App() {
   const { settings, updateSetting, resetSettings } = useSettings()
   const { blurIntensity, glassOpacity } = useSettingsStyles(settings)
   
-  const { songs, recentSongs, likedSongs, isSetupComplete, scanFolder, addToRecent, toggleLike, hasLibrary } = useMusicLibrary()
+  const { songs, recentSongs, likedSongs, isSetupComplete, scanFolder, addToRecent, toggleLike, hasLibrary, refreshLibrary, isScanning } = useMusicLibrary()
   
   const {
     currentSong,

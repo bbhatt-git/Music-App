@@ -13,4 +13,8 @@ export interface Song {
   albumArtUrl?: string
   addedAt: number
   trackNumber?: number
+  year?: string
+  genre?: string
+  playCount?: number
+  lastPlayed?: number
 }

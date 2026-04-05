@@ -5,6 +5,12 @@ import { extractMetadataFromFile } from '../utils/metadata'
 const DB_NAME = 'MusicAppDB'
 const DB_VERSION = 1
 const SCAN_INTERVAL = 5 * 60 * 1000 // 5 minutes
+const LS_KEYS = {
+  songs: 'music_app_songs',
+  likedSongs: 'music_app_liked',
+  folderName: 'music_app_folder_name',
+  folderHandleId: 'music_app_folder_handle_id'
+}
 
 // Helper to merge songs preserving metadata like play count
 function mergeSongs(existing: Song[], fresh: Song[]): Song[] {
@@ -64,26 +70,79 @@ export function useMusicLibrary() {
     const loadData = async () => {
       await initDB()
       
-      // Load songs
-      const tx = dbRef.current!.transaction('songs', 'readonly')
-      const store = tx.objectStore('songs')
-      const songsRequest = store.getAll()
+      // Try IndexedDB first, then fall back to localStorage
+      let loadedSongs: Song[] = []
       
-      songsRequest.onsuccess = () => {
-        const loadedSongs = songsRequest.result as Song[]
-        setSongs(loadedSongs)
-        setIsSetupComplete(loadedSongs.length > 0)
+      try {
+        const tx = dbRef.current!.transaction('songs', 'readonly')
+        const store = tx.objectStore('songs')
+        const songsRequest = store.getAll()
+        
+        await new Promise<void>((resolve) => {
+          songsRequest.onsuccess = () => {
+            loadedSongs = songsRequest.result as Song[]
+            resolve()
+          }
+          songsRequest.onerror = () => resolve()
+        })
+      } catch (e) {
+        console.warn('IndexedDB songs load failed, trying localStorage')
       }
-
-      // Load liked songs
-      const settingsTx = dbRef.current!.transaction('settings', 'readonly')
-      const settingsStore = settingsTx.objectStore('settings')
-      const likedRequest = settingsStore.get('likedSongs')
       
-      likedRequest.onsuccess = () => {
-        if (likedRequest.result) {
-          setLikedSongs(likedRequest.result.value)
+      // Fallback to localStorage
+      if (loadedSongs.length === 0) {
+        const lsSongs = localStorage.getItem(LS_KEYS.songs)
+        if (lsSongs) {
+          try {
+            loadedSongs = JSON.parse(lsSongs)
+          } catch (e) {
+            console.warn('Failed to parse songs from localStorage')
+          }
         }
+      }
+      
+      setSongs(loadedSongs)
+      setIsSetupComplete(loadedSongs.length > 0)
+
+      // Load liked songs - try IndexedDB then localStorage
+      let loadedLiked: string[] = []
+      try {
+        const settingsTx = dbRef.current!.transaction('settings', 'readonly')
+        const settingsStore = settingsTx.objectStore('settings')
+        const likedRequest = settingsStore.get('likedSongs')
+        
+        await new Promise<void>((resolve) => {
+          likedRequest.onsuccess = () => {
+            if (likedRequest.result) {
+              loadedLiked = likedRequest.result.value
+            }
+            resolve()
+          }
+          likedRequest.onerror = () => resolve()
+        })
+      } catch (e) {
+        console.warn('IndexedDB liked songs load failed')
+      }
+      
+      if (loadedLiked.length === 0) {
+        const lsLiked = localStorage.getItem(LS_KEYS.likedSongs)
+        if (lsLiked) {
+          try {
+            loadedLiked = JSON.parse(lsLiked)
+          } catch (e) {
+            console.warn('Failed to parse liked songs from localStorage')
+          }
+        }
+      }
+      
+      setLikedSongs(loadedLiked)
+      
+      // Try to restore folder handle - can't store the handle itself,
+      // but we can try to use File System Access API's getDirectory if available
+      // or just note that user needs to re-select
+      const folderName = localStorage.getItem(LS_KEYS.folderName)
+      if (folderName) {
+        console.log('Previously selected folder:', folderName)
       }
     }
 
@@ -111,6 +170,13 @@ export function useMusicLibrary() {
       tx.oncomplete = () => resolve()
     })
     
+    // Also save to localStorage as backup
+    try {
+      localStorage.setItem(LS_KEYS.songs, JSON.stringify(newSongs))
+    } catch (e) {
+      console.warn('Failed to save songs to localStorage')
+    }
+    
     setSongs(newSongs)
     setIsSetupComplete(true)
   }, [])
@@ -133,6 +199,13 @@ export function useMusicLibrary() {
         const tx = dbRef.current.transaction('settings', 'readwrite')
         const store = tx.objectStore('settings')
         store.put({ key: 'likedSongs', value: newLiked })
+      }
+      
+      // Also save to localStorage as backup
+      try {
+        localStorage.setItem(LS_KEYS.likedSongs, JSON.stringify(newLiked))
+      } catch (e) {
+        console.warn('Failed to save liked songs to localStorage')
       }
       
       return newLiked
@@ -195,7 +268,8 @@ export function useMusicLibrary() {
         })
       )
       
-      newSongs.push(...batchResults.filter((s): s is Song => s !== null))
+      const validSongs = batchResults.filter(s => s !== null) as Song[]
+      newSongs.push(...validSongs)
       
       onProgress?.(Math.min(i + batchSize, musicFiles.length), musicFiles.length)
       
@@ -219,6 +293,9 @@ export function useMusicLibrary() {
     try {
       const dirHandle = await window.showDirectoryPicker()
       dirHandleRef.current = dirHandle
+      
+      // Store folder name for reference
+      localStorage.setItem(LS_KEYS.folderName, dirHandle.name)
       
       const newSongs = await scanFolderInternal(dirHandle, onProgress)
       
@@ -297,8 +374,14 @@ export function useMusicLibrary() {
       tx.oncomplete = () => resolve()
     })
     
+    // Clear localStorage
+    localStorage.removeItem(LS_KEYS.songs)
+    localStorage.removeItem(LS_KEYS.likedSongs)
+    localStorage.removeItem(LS_KEYS.folderName)
+    
     setSongs([])
     setIsSetupComplete(false)
+    dirHandleRef.current = null
   }, [])
 
   return {

@@ -1,3 +1,5 @@
+import type { Song } from '../types'
+
 // Parse ID3v2 text tags from buffer
 function parseID3v2Tags(buffer: any): { title?: string; artist?: string; album?: string; year?: string; genre?: string } {
   const bytes = new Uint8Array(buffer)
@@ -214,7 +216,7 @@ export async function extractMetadataFromFile(
   file: File, 
   path: string, 
   fileHandle?: FileSystemFileHandle
-) {
+): Promise<Song> {
   const fileName = file.name.replace(/\.[^/.]+$/, '')
   
   // Default values
