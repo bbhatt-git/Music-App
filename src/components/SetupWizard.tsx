@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Music, FolderOpen, Loader2, Check } from 'lucide-react'
+import { Music, FolderOpen, Check } from 'lucide-react'
 
 interface SetupWizardProps {
   onScanFolder: () => Promise<void>

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { MotionConfig } from 'framer-motion'
 import App from './App'
+// @ts-expect-error - CSS import handled by bundler
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

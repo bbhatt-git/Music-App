@@ -15,4 +15,10 @@ declare global {
   type FileSystemHandle = FileSystemFileHandle | FileSystemDirectoryHandle
 }
 
+// CSS module declarations
+declare module '*.css' {
+  const content: string
+  export default content
+}
+
 export {}

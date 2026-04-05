@@ -41,14 +41,7 @@ export default function HomeView({
   const showDuration = settings?.showDuration ?? true
   const layoutDensity = settings?.layoutDensity ?? 'comfortable'
   const cardSize = settings?.cardSize ?? 'normal'
-  const gridColumns = settings?.gridColumns ?? 'auto'
   
-  // Grid columns class
-  const gridCols = gridColumns === 'auto' 
-    ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6' 
-    : `grid-cols-2 md:grid-cols-${gridColumns}`
-  
-  // Card padding based on density
   const cardPadding = layoutDensity === 'compact' ? 'p-2' : layoutDensity === 'spacious' ? 'p-5' : 'p-3'
   
   // Card size

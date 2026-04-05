@@ -49,20 +49,10 @@ function App() {
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   
-  const { settings, updateSetting, updateMultiple, resetSettings } = useSettings()
-  const { blurIntensity, glassOpacity, borderOpacity, borderRadius, sidebarWidth } = useSettingsStyles(settings)
+  const { settings, updateSetting, resetSettings } = useSettings()
+  const { blurIntensity, glassOpacity } = useSettingsStyles(settings)
   
-  const { 
-    songs, 
-    recentSongs, 
-    likedSongs,
-    isSetupComplete,
-    scanFolder, 
-    addToRecent,
-    toggleLike,
-    resetLibrary,
-    hasLibrary
-  } = useMusicLibrary()
+  const { songs, recentSongs, likedSongs, isSetupComplete, scanFolder, addToRecent, toggleLike, hasLibrary } = useMusicLibrary()
   
   const {
     currentSong,
@@ -151,7 +141,12 @@ function App() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black overflow-hidden"
+      style={{
+        background: settings.ambientEnabled ? undefined : settings.backgroundColor,
+      }}
+    >
       {settings.ambientEnabled && (
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="ambient-blob w-[700px] h-[700px] bg-purple-600/30 -top-[250px] -right-[150px] animate-float" />
@@ -175,7 +170,13 @@ function App() {
         )}
 
         <main className="flex-1 flex flex-col min-w-0 h-full">
-          <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-black/20 backdrop-blur-[30px] border-b border-white/[0.06]">
+          <header 
+            className="flex items-center justify-between px-4 md:px-6 py-4 bg-black/20 border-b border-white/[0.06]"
+            style={{
+              backdropFilter: `blur(${blurIntensity})`,
+              backgroundColor: `rgba(0, 0, 0, ${glassOpacity})`
+            }}
+          >
             <div className="flex items-center gap-2">
               {isMobile && (
                 <button onClick={() => setShowMobileSidebar(true)} className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/[0.1] flex items-center justify-center text-white/80">
@@ -199,9 +200,9 @@ function App() {
               <motion.div key={currentView} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
                 {currentView === 'home' && <HomeView songs={songs} recentSongs={recentSongs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} isMobile={isMobile} settings={viewSettings} />}
                 {currentView === 'library' && <LibraryView songs={songs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} isMobile={isMobile} settings={viewSettings} />}
-                {currentView === 'search' && <SearchView songs={songs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} settings={viewSettings} />}
-                {currentView === 'liked' && <LikedView songs={songs.filter(s => likedSongs.includes(s.id))} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} isMobile={isMobile} settings={viewSettings} />}
-                {currentView === 'settings' && <SettingsView settings={settings} onUpdateSetting={updateSetting} onUpdateMultiple={updateMultiple} onReset={resetSettings} onImport={() => setCurrentView('search')} />}
+                {currentView === 'search' && <SearchView songs={songs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} />}
+                {currentView === 'liked' && <LikedView songs={songs.filter(s => likedSongs.includes(s.id))} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} />}
+                {currentView === 'settings' && <SettingsView settings={settings} onUpdateSetting={updateSetting} onReset={resetSettings} onImport={() => setCurrentView('search')} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -214,7 +215,7 @@ function App() {
         {isMobile && <MobileNav currentView={currentView} onViewChange={setCurrentView} />}
       </div>
 
-      <FullPlayer isOpen={showFullPlayer} onClose={() => setShowFullPlayer(false)} currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} isMobile={isMobile} />
+      <FullPlayer isOpen={showFullPlayer} onClose={() => setShowFullPlayer(false)} currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} />
     </div>
   )
 }

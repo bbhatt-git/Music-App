@@ -27,7 +27,6 @@ export default function LibraryView({ songs, currentSong, isPlaying, onPlaySong,
   const showArtist = settings?.showArtistName ?? true
   const showDuration = settings?.showDuration ?? true
   const layoutDensity = settings?.layoutDensity ?? 'comfortable'
-  const groupBy = settings?.groupBy ?? 'artist'
   
   const borderRadius = albumArtStyle === 'circle' ? 'rounded-full' : albumArtStyle === 'square' ? 'rounded-none' : albumArtStyle === 'vinyl' ? 'rounded-full border-2 border-white/10' : 'rounded-lg'
   

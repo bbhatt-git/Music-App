@@ -96,7 +96,7 @@ export async function extractMetadataFromFile(
   let genre: string | undefined
   
   // Remove track numbers from start
-  let cleanName = fileName.replace(/^(\d+)[\.\s\-_]+/, (match, num) => {
+  let cleanName = fileName.replace(/^(\d+)[\.\s\-_]+/, (_match, num) => {
     trackNumber = parseInt(num)
     return ''
   })

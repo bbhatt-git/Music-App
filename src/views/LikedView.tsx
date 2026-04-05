@@ -32,7 +32,7 @@ export default function LikedView({ songs, currentSong, isPlaying, onPlaySong }:
             <p className="text-sm mt-2">Click the heart icon on any song to add it here</p>
           </div>
         ) : (
-          songs.map((song, i) => (
+          songs.map((song) => (
             <div
               key={song.id}
               onClick={() => onPlaySong(song.id)}

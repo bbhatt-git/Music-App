@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Pause, SkipBack, SkipForward, Heart, ChevronDown, Shuffle, Repeat } from 'lucide-react'
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Heart, Shuffle } from 'lucide-react'
 import type { Song } from '../types'
 
 interface FullPlayerProps {

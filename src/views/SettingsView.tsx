@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Palette, Layout, PlayCircle, Image as ImageIcon, Sparkles, Zap, 
-  Monitor, Eye, Columns, Sun, Moon, Accessibility, Cpu, Terminal, Database,
-  RotateCcw, FolderPlus, ChevronLeft, Check, Volume2, Type, Grid3X3, List,
-  Smartphone, Maximize2, Minimize2, SkipForward, Repeat, Shuffle, Clock,
-  Keyboard, Disc, Heart, BarChart3, Layers, Aperture, Fingerprint, Music
+  Monitor, Eye, Columns, Sun, Accessibility, Cpu, Terminal, Database,
+  RotateCcw, FolderPlus, ChevronLeft, Volume2, Type, Grid3X3, List,
+  Keyboard
 } from 'lucide-react'
 import type { Settings } from '../hooks/useSettings'
 
@@ -14,7 +13,6 @@ type Category = 'appearance' | 'layout' | 'player' | 'library' | 'animations' | 
 interface SettingsViewProps {
   settings: Settings
   onUpdateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void
-  onUpdateMultiple: (updates: Partial<Settings>) => void
   onReset: () => void
   onImport: () => void
 }
@@ -30,7 +28,7 @@ const CATEGORIES: { id: Category; label: string; icon: React.ElementType; descri
   { id: 'advanced', label: 'Advanced', icon: Cpu, description: 'Developer, performance', count: 6 },
 ]
 
-export default function SettingsView({ settings, onUpdateSetting, onUpdateMultiple, onReset, onImport }: SettingsViewProps) {
+export default function SettingsView({ settings, onUpdateSetting, onReset, onImport }: SettingsViewProps) {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
