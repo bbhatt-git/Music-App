@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SoundWave - Music Streaming</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- ===== WELCOME SCREEN ===== -->
+        <div class="screen welcome-screen active">
+            <div class="welcome-content">
+                <div class="welcome-logo">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div>
+                    <h1 class="welcome-title">SoundWave</h1>
+                    <p class="welcome-subtitle">Your Music, Your Vibe</p>
+                </div>
+                <div class="welcome-features">
+                    <div class="feature">
+                        <div class="feature-icon"><i class="fa-solid fa-list"></i></div>
+                        <div class="feature-text">Create & manage playlists</div>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon"><i class="fa-solid fa-heart"></i></div>
+                        <div class="feature-text">Save your favorite songs</div>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                        <div class="feature-text">Discover new music</div>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon"><i class="fa-solid fa-repeat"></i></div>
+                        <div class="feature-text">Unlimited playback</div>
+                    </div>
+                </div>
+                <button class="get-started-btn" onclick="app.startApp()">Get Started</button>
+            </div>
+        </div>
+
+        <!-- ===== HOME SCREEN ===== -->
+        <div class="screen home-screen">
+            <div class="home-header">
+                <div>
+                    <div class="greeting">Hi, Music Fan 👋</div>
+                    <div class="greeting-small">Let's play some music</div>
+                </div>
+                <div class="header-icons">
+                    <button class="icon-btn" onclick="app.toggleNotifications()"><i class="fa-solid fa-bell"></i></button>
+                    <button class="icon-btn" onclick="app.openSettings()"><i class="fa-solid fa-gear"></i></button>
+                </div>
+            </div>
+
+            <div class="category-filter" id="categoryFilter">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <div class="now-playing-card" onclick="app.showPlayer()">
+                <div class="mini-album-art">
+                    <img src="https://images.unsplash.com/photo-1614149162883-504ce4d13909?q=80&w=500&auto=format&fit=crop" alt="Album">
+                </div>
+                <div class="now-playing-info">
+                    <div>
+                        <h3 id="mini-song-title">Neon Shadows</h3>
+                        <p id="mini-song-artist">Synthwave Cartel</p>
+                    </div>
+                    <div class="play-indicator" id="playIndicator">
+                        <div class="play-dot"></div>
+                        <div class="play-dot"></div>
+                        <div class="play-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="section-title">Your Playlists</h3>
+            <div class="playlists-grid">
+                <div class="playlist-card" onclick="app.openPlaylist('liked')">
+                    <div class="playlist-icon">❤️</div>
+                    <h3>Liked Songs</h3>
+                    <p id="liked-count">0 songs</p>
+                </div>
+                <div class="playlist-card" onclick="app.openPlaylist('recent')">
+                    <div class="playlist-icon">🕐</div>
+                    <h3>Recently Played</h3>
+                    <p id="recent-count">0 songs</p>
+                </div>
+                <div class="playlist-card" onclick="app.openPlaylist('workout')">
+                    <div class="playlist-icon">💪</div>
+                    <h3>Workout Mix</h3>
+                    <p>18 songs</p>
+                </div>
+                <div class="playlist-card" onclick="app.openPlaylist('chill')">
+                    <div class="playlist-icon">🎧</div>
+                    <h3>Chill Vibes</h3>
+                    <p>25 songs</p>
+                </div>
+            </div>
+
+            <h3 class="section-title">Recent Tracks</h3>
+            <div class="recent-songs" id="recentSongsContainer"></div>
+        </div>
+
+        <!-- ===== PLAYER SCREEN ===== -->
+        <div class="screen player-screen">
+            <div class="player-header">
+                <button class="icon-btn" onclick="app.goToHome()"><i class="fa-solid fa-chevron-down"></i></button>
+                <div class="player-title">Now Playing</div>
+                <button class="icon-btn" onclick="app.openMoreOptions()"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </div>
+
+            <div class="player-content">
+                <div class="album-art">
+                    <img id="playerAlbumArt" src="https://images.unsplash.com/photo-1614149162883-504ce4d13909?q=80&w=500&auto=format&fit=crop" alt="Album">
+                    <div class="album-art-glass"></div>
+                </div>
+
+                <div id="waveformSection" class="waveform-container" style="display: none;">
+                    <canvas id="waveformCanvas"></canvas>
+                </div>
+
+                <div class="song-info-large">
+                    <div>
+                        <h1 id="playerSongTitle">Neon Shadows</h1>
+                        <p id="playerSongArtist">Synthwave Cartel</p>
+                    </div>
+                    <button class="like-btn" id="playerLikeBtn" onclick="app.toggleLike()"><i class="fa-regular fa-heart"></i></button>
+                </div>
+
+                <div class="progress-wrapper">
+                    <div class="progress-bar-bg" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-thumb" id="progressThumb"></div>
+                    </div>
+                    <div class="time-info">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">3:45</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn secondary" id="shuffleBtn" onclick="app.toggleShuffle()"><i class="fa-solid fa-shuffle"></i></button>
+                    <button class="control-btn" onclick="app.previousTrack()"><i class="fa-solid fa-backward-step"></i></button>
+                    <button class="play-pause-btn" id="playBtn" onclick="app.togglePlay()"><i class="fa-solid fa-play"></i></button>
+                    <button class="control-btn" onclick="app.nextTrack()"><i class="fa-solid fa-forward-step"></i></button>
+                    <button class="control-btn secondary" id="repeatBtn" onclick="app.toggleRepeat()"><i class="fa-solid fa-repeat"></i></button>
+                </div>
+
+                <div class="queue-section" id="queueSection" style="display: none;">
+                    <div class="queue-title">Up Next</div>
+                    <div id="queueContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SEARCH SCREEN ===== -->
+        <div class="screen search-screen">
+            <div class="search-header">
+                <h2 style="font-size: 1.6rem; margin-bottom: 15px;">Search</h2>
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search songs, artists...">
+                </div>
+            </div>
+
+            <div id="searchContainer">
+                <div class="search-category">
+                    <div class="category-name">Popular Right Now</div>
+                    <div class="category-items" id="popularContainer"></div>
+                </div>
+            </div>
+
+            <div id="searchResults" style="display: none;"></div>
+        </div>
+
+        <!-- ===== PROFILE SCREEN ===== -->
+        <div class="screen profile-screen">
+            <div class="profile-header">
+                <div class="profile-avatar">👤</div>
+                <h2 class="profile-name">Music Lover</h2>
+                <p class="profile-email">user@soundwave.app</p>
+            </div>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalSongs">0</div>
+                    <div class="stat-label">Total Plays</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="likedSongs">0</div>
+                    <div class="stat-label">Liked</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="playlistCount">4</div>
+                    <div class="stat-label">Playlists</div>
+                </div>
+            </div>
+
+            <div class="profile-menu">
+                <div class="profile-item" id="themeToggle">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-palette"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Change Theme</h3>
+                            <p id="currentTheme">Neon Green</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+
+                <div class="profile-item">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-download"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Downloaded</h3>
+                            <p>0.0 MB</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+
+                <div class="profile-item">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-volume-high"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Sound Quality</h3>
+                            <p>High</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+
+                <div class="profile-item">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-moon"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Dark Theme</h3>
+                            <p>Always on</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+
+                <div class="profile-item" onclick="app.navigateTo('import')">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-upload"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Import Music</h3>
+                            <p>Add songs from your device</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+
+                <div class="profile-item">
+                    <div class="profile-item-content">
+                        <div class="profile-item-icon"><i class="fa-solid fa-question"></i></div>
+                        <div class="profile-item-text">
+                            <h3>Help & Support</h3>
+                            <p>Contact us</p>
+                        </div>
+                    </div>
+                    <div class="profile-item-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== IMPORT MUSIC SCREEN ===== -->
+        <div class="screen import-screen">
+            <div class="import-header">
+                <h2>Import Your Music</h2>
+                <p>Select a folder to scan for music files</p>
+            </div>
+
+            <div class="import-content">
+                <div id="importCard" class="import-card">
+                    <div class="import-icon">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3>Select Music Folder</h3>
+                    <p>Choose a directory containing your music files</p>
+                    <button class="import-btn" onclick="app.startMusicImport()">
+                        <i class="fa-solid fa-folder-open"></i> Browse Folder
+                    </button>
+                </div>
+
+                <div id="importProgress" style="display: none;" class="import-progress">
+                    <h4>Scanning...</h4>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="importProgressFill" style="width: 0%"></div>
+                    </div>
+                    <p id="importStatus">Found 0 files...</p>
+                    <button class="cancel-btn" onclick="app.cancelMusicImport()">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                </div>
+
+                <div id="importResults" style="display: none;" class="import-results">
+                    <h4>Import Complete!</h4>
+                    <p id="importSummary">Found 0 songs ready to import</p>
+                    <button class="import-btn primary" onclick="app.confirmMusicImport()">
+                        <i class="fa-solid fa-check"></i> Import Songs
+                    </button>
+                    <button class="import-btn secondary" onclick="app.cancelMusicImport()">
+                        <i class="fa-solid fa-arrow-left"></i> Back
+                    </button>
+                </div>
+
+                <div class="import-info">
+                    <h4>Supported Formats</h4>
+                    <p>MP3, WAV, FLAC, OGG, M4A, AAC, WMA</p>
+                    <h4 style="margin-top: 20px;">Privacy</h4>
+                    <p>Your music stays on your device. Nothing is uploaded to any server.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== BOTTOM NAVIGATION ===== -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="app.navigateTo('home')">
+                <i class="fa-solid fa-house"></i>
+                <span class="nav-item-label">Home</span>
+            </div>
+            <div class="nav-item" onclick="app.navigateTo('search')">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span class="nav-item-label">Search</span>
+            </div>
+            <div class="nav-item" onclick="app.navigateTo('player')">
+                <i class="fa-solid fa-headphones-simple"></i>
+                <span class="nav-item-label">Play</span>
+            </div>
+            <div class="nav-item" onclick="app.navigateTo('profile')">
+                <i class="fa-regular fa-user"></i>
+                <span class="nav-item-label">Profile</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="db-manager.js"></script>
+    <script src="music-scanner.js"></script>
+    <script src="app.js"></script>
+    <script src="theme-builder.js"></script>
+    <script src="customization.js"></script>
+    <script>
+        // Theme selector
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                const themes = Object.keys(CONFIG.colors);
+                const currentThemeIndex = themes.indexOf(CONFIG.theme);
+                const nextTheme = themes[(currentThemeIndex + 1) % themes.length];
+                CONFIG.setTheme(nextTheme);
+                
+                const themeNames = {
+                    'neon-green': 'Neon Green',
+                    'orange': 'Orange',
+                    'red': 'Red',
+                    'cyan': 'Cyan'
+                };
+                document.getElementById('currentTheme').textContent = themeNames[nextTheme] || 'Custom';
+                alert(`Theme changed to ${themeNames[nextTheme] || 'Custom'}!`);
+            });
+        }
+
+        // Render category filter
+        const categoryFilter = document.getElementById('categoryFilter');
+        CONFIG.categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = `category-btn ${cat.name === 'All' ? 'active' : ''}`;
+            btn.innerHTML = `${cat.emoji} ${cat.name}`;
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const event = new CustomEvent('categorySelected', { 
+                    detail: { category: cat.name } 
+                });
+                document.dispatchEvent(event);
+            });
+            categoryFilter.appendChild(btn);
+        });
+
+        // Show/hide waveform
+        const waveformSection = document.getElementById('waveformSection');
+        const queueSection = document.getElementById('queueSection');
+        
+        if (waveformSection) {
+            waveformSection.style.display = CONFIG.features.waveform ? 'flex' : 'none';
+        }
+        if (queueSection) {
+            queueSection.style.display = CONFIG.features.queue ? 'block' : 'none';
+        }
+
+        // Log current configuration
+        console.log('SoundWave App - Configuration:', {
+            theme: CONFIG.theme,
+            colors: CONFIG.colors[CONFIG.theme],
+            features: CONFIG.features,
+            layout: CONFIG.layout
+        });
+    </script>
+</body>
+</html>
