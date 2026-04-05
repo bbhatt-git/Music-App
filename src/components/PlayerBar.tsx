@@ -17,6 +17,15 @@ interface PlayerBarProps {
   isMobile?: boolean
   blurIntensity?: string
   glassOpacity?: string
+  settings?: {
+    albumArtDisplay: string
+    albumArtStyle: string
+    showAlbumName: boolean
+    showArtistName: boolean
+    showLikeButton: boolean
+    showProgressBar: boolean
+    showTimeDisplay: boolean
+  }
 }
 
 export default function PlayerBar({
@@ -33,7 +42,8 @@ export default function PlayerBar({
   onExpand,
   isMobile = false,
   blurIntensity = '50px',
-  glassOpacity = '0.04'
+  glassOpacity = '0.04',
+  settings
 }: PlayerBarProps) {
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -43,6 +53,38 @@ export default function PlayerBar({
   }
 
   const currentTime = (progress / 100) * duration
+  
+  // Settings
+  const albumArtDisplay = settings?.albumArtDisplay ?? 'real'
+  const albumArtStyle = settings?.albumArtStyle ?? 'rounded'
+  const showAlbum = settings?.showAlbumName ?? true
+  const showArtist = settings?.showArtistName ?? true
+  const showLike = settings?.showLikeButton ?? true
+  const showProgress = settings?.showProgressBar ?? true
+  const showTime = settings?.showTimeDisplay ?? true
+  
+  const borderRadius = albumArtStyle === 'circle' ? 'rounded-full' : albumArtStyle === 'square' ? 'rounded-none' : 'rounded-lg'
+  
+  // Render album art
+  const renderAlbumArt = () => {
+    if (albumArtDisplay === 'real' && currentSong?.albumArtUrl) {
+      return (
+        <img 
+          src={currentSong.albumArtUrl} 
+          alt={currentSong.title}
+          className={`w-full h-full object-cover ${borderRadius}`}
+        />
+      )
+    }
+    return (
+      <div 
+        className={`w-full h-full flex items-center justify-center text-xl font-semibold ${borderRadius}`}
+        style={{ background: currentSong?.artColor || 'rgba(255,255,255,0.06)' }}
+      >
+        {albumArtDisplay === 'none' ? '' : (currentSong?.artLetter || '♪')}
+      </div>
+    )
+  }
 
   return (
     <div className={`${isMobile ? 'px-2 pb-20' : 'px-4'} pb-4`}>
@@ -60,18 +102,17 @@ export default function PlayerBar({
             onClick={onExpand}
           >
             <div 
-              className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-semibold transition-all duration-300 group-hover:scale-105 shadow-lg"
-              style={{ background: currentSong?.artColor || 'rgba(255,255,255,0.06)' }}
+              className={`w-14 h-14 flex-shrink-0 overflow-hidden transition-all duration-300 group-hover:scale-105 shadow-lg ${borderRadius}`}
             >
-              {currentSong?.artLetter || '♪'}
+              {renderAlbumArt()}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white truncate">
                 {currentSong?.title || 'Not Playing'}
               </p>
               <p className="text-xs text-white/50 truncate">
-                {currentSong?.artist || 'Select a song'}
-                {currentSong?.album && currentSong.album !== 'Unknown Album' && (
+                {showArtist && (currentSong?.artist || 'Select a song')}
+                {showAlbum && currentSong?.album && currentSong.album !== 'Unknown Album' && (
                   <span className="text-white/30"> — {currentSong.album}</span>
                 )}
               </p>
@@ -110,30 +151,36 @@ export default function PlayerBar({
           </div>
 
           {/* Progress */}
-          <div className={`flex items-center gap-2 ${isMobile ? 'flex-1 max-w-[120px]' : 'flex-1 max-w-md'}`}>
-            <span className={`text-[11px] text-white/40 w-9 text-right font-medium ${isMobile ? 'hidden' : ''}`}>
-              {formatTime(currentTime)}
-            </span>
-            <div 
-              className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer overflow-hidden hover:bg-white/20 transition-colors"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect()
-                const percent = ((e.clientX - rect.left) / rect.width) * 100
-                onSeek(Math.max(0, Math.min(100, percent)))
-              }}
-            >
-              <motion.div 
-                className="h-full bg-white rounded-full"
-                style={{ width: `${progress}%` }}
-              />
+          {showProgress && (
+            <div className={`flex items-center gap-2 ${isMobile ? 'flex-1 max-w-[120px]' : 'flex-1 max-w-md'}`}>
+              {showTime && (
+                <span className={`text-[11px] text-white/40 w-9 text-right font-medium ${isMobile ? 'hidden' : ''}`}>
+                  {formatTime(currentTime)}
+                </span>
+              )}
+              <div 
+                className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer overflow-hidden hover:bg-white/20 transition-colors"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const percent = ((e.clientX - rect.left) / rect.width) * 100
+                  onSeek(Math.max(0, Math.min(100, percent)))
+                }}
+              >
+                <motion.div 
+                  className="h-full bg-white rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              {showTime && (
+                <span className={`text-[11px] text-white/40 w-9 font-medium ${isMobile ? 'hidden' : ''}`}>
+                  {formatTime(duration)}
+                </span>
+              )}
             </div>
-            <span className={`text-[11px] text-white/40 w-9 font-medium ${isMobile ? 'hidden' : ''}`}>
-              {formatTime(duration)}
-            </span>
-          </div>
+          )}
 
           {/* Like */}
-          <motion.button
+          {showLike && (<motion.button
             whileTap={{ scale: 0.9 }}
             onClick={onToggleLike}
             className={`p-2.5 rounded-full transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-white/40 hover:text-white hover:bg-white/[0.08]'}`}
