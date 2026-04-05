@@ -269,37 +269,10 @@ export async function extractMetadataFromFile(
     title = title.replace(/\s*(\([^)]*\)|\[[^\]]*\])\s*$/, '').trim()
   }
   
-  // Get duration
-  let duration = '0:00'
-  let durationSeconds = 180
-  
-  try {
-    const audio = new Audio()
-    const url = URL.createObjectURL(file)
-    audio.src = url
-    
-    await new Promise<void>((resolve) => {
-      const cleanup = () => {
-        URL.revokeObjectURL(url)
-        resolve()
-      }
-      
-      audio.addEventListener('loadedmetadata', () => {
-        if (audio.duration && !isNaN(audio.duration)) {
-          durationSeconds = audio.duration
-          const mins = Math.floor(audio.duration / 60)
-          const secs = Math.floor(audio.duration % 60)
-          duration = `${mins}:${secs.toString().padStart(2, '0')}`
-        }
-        cleanup()
-      })
-      
-      audio.addEventListener('error', cleanup)
-      setTimeout(cleanup, 5000)
-    })
-  } catch (e) {
-    console.warn('Duration extraction failed:', e)
-  }
+  // Skip slow duration extraction during initial scan
+  // We'll estimate or fetch duration when song plays
+  const duration = '0:00'
+  const durationSeconds = 180
   
   // Generate fallback art - use title's first letter
   const hash = title.split('').reduce((acc, char) => {
@@ -309,12 +282,15 @@ export async function extractMetadataFromFile(
   const artColor = `hsl(${hue}, 60%, 40%)`
   const artLetter = title.charAt(0).toUpperCase() || '♪'
   
-  // Extract album art
+  // Extract album art - limit read size for speed
   let albumArtUrl: string | undefined
   try {
-    albumArtUrl = await extractAlbumArt(file)
+    // Only read first 256KB for album art to speed up scanning
+    const artBuffer = await file.slice(0, 262144).arrayBuffer() as ArrayBuffer
+    const artFile = new File([artBuffer], file.name, { type: file.type })
+    albumArtUrl = await extractAlbumArt(artFile)
   } catch (e) {
-    console.warn('Album art extraction failed:', e)
+    // Silently fail for album art - not critical
   }
   
   return {

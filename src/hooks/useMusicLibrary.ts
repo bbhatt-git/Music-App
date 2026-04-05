@@ -109,7 +109,7 @@ export function useMusicLibrary() {
     return await extractMetadataFromFile(file, path, fileHandle)
   }
 
-  const scanFolder = useCallback(async () => {
+  const scanFolder = useCallback(async (onProgress?: (current: number, total: number) => void) => {
     if (!window.showDirectoryPicker) {
       alert('Please use Chrome or Edge for file system access')
       return
@@ -120,30 +120,64 @@ export function useMusicLibrary() {
       const musicFiles: { entry: FileSystemFileHandle; path: string }[] = []
       const supportedFormats = ['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma', '.opus']
       
+      // Fast recursive directory scanning
       async function scanDirectory(handle: FileSystemDirectoryHandle, path = '') {
+        const entries: FileSystemHandle[] = []
         for await (const entry of handle.values()) {
-          if (entry.kind === 'directory') {
-            await scanDirectory(entry as FileSystemDirectoryHandle, `${path}/${entry.name}`)
-          } else if (entry.kind === 'file') {
-            const ext = '.' + entry.name.split('.').pop()?.toLowerCase()
-            if (supportedFormats.includes(ext)) {
-              musicFiles.push({ entry: entry as FileSystemFileHandle, path: `${path}/${entry.name}` })
+          entries.push(entry)
+        }
+        
+        // Process entries in parallel batches
+        const batchSize = 50
+        for (let i = 0; i < entries.length; i += batchSize) {
+          const batch = entries.slice(i, i + batchSize)
+          await Promise.all(batch.map(async (entry) => {
+            if (entry.kind === 'directory') {
+              await scanDirectory(entry as FileSystemDirectoryHandle, `${path}/${entry.name}`)
+            } else if (entry.kind === 'file') {
+              const ext = '.' + entry.name.split('.').pop()?.toLowerCase()
+              if (supportedFormats.includes(ext)) {
+                musicFiles.push({ entry: entry as FileSystemFileHandle, path: `${path}/${entry.name}` })
+              }
             }
-          }
+          }))
         }
       }
       
       await scanDirectory(dirHandle)
       
-      // Extract metadata
+      // Extract metadata in parallel batches
       const songs: Song[] = []
-      for (const { entry, path } of musicFiles) {
-        try {
-          const file = await entry.getFile()
-          const metadata = await extractMetadata(file, path, entry)
-          songs.push(metadata)
-        } catch (e) {
-          console.warn('Failed to process:', e)
+      const batchSize = 10 // Process 10 files concurrently
+      
+      for (let i = 0; i < musicFiles.length; i += batchSize) {
+        const batch = musicFiles.slice(i, i + batchSize)
+        
+        const batchResults = await Promise.all(
+          batch.map(async ({ entry, path }) => {
+            try {
+              const file = await entry.getFile()
+              // Skip large files for initial metadata read - only read first 256KB for tags
+              const tagFile = file.size > 262144 
+                ? new File([await file.slice(0, 262144).arrayBuffer()], file.name, { type: file.type })
+                : file
+              const metadata = await extractMetadata(tagFile, path, entry)
+              return metadata
+            } catch (e) {
+              console.warn('Failed to process:', e)
+              return null
+            }
+          })
+        )
+        
+        songs.push(...batchResults.filter((s): s is Song => s !== null))
+        
+        // Report progress
+        onProgress?.(Math.min(i + batchSize, musicFiles.length), musicFiles.length)
+        
+        // Yield to main thread to keep UI responsive
+        if (i % 50 === 0) {
+          await new Promise(r => setTimeout(r, 0))
         }
       }
       

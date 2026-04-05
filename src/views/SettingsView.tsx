@@ -33,16 +33,16 @@ export default function SettingsView({ settings, onUpdateSetting, onReset, onImp
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
+    <div className="w-full max-w-4xl mx-auto pb-20 px-4 sm:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Settings</h1>
-          <p className="text-white/50">Customize your music experience</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Settings</h1>
+          <p className="text-white/50 text-sm sm:text-base">Customize your music experience</p>
         </div>
         <button
           onClick={() => setShowResetConfirm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] transition-all"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] transition-all self-start sm:self-auto"
         >
           <RotateCcw className="w-4 h-4" />
           <span className="text-sm font-medium">Reset</span>
@@ -66,21 +66,21 @@ export default function SettingsView({ settings, onUpdateSetting, onReset, onImp
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className="w-full flex items-center gap-4 p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.06] hover:border-white/[0.1] transition-all group"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl hover:bg-white/[0.06] hover:border-white/[0.1] transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/[0.06] flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
-                    <Icon className="w-6 h-6 text-white/70" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/[0.06] flex items-center justify-center group-hover:bg-white/[0.1] transition-colors flex-shrink-0">
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white/70" />
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-lg">{cat.label}</h3>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-base sm:text-lg">{cat.label}</h3>
                       <span className="text-xs px-2 py-0.5 bg-white/[0.08] rounded-full text-white/50">
                         {cat.count} options
                       </span>
                     </div>
-                    <p className="text-sm text-white/40">{cat.description}</p>
+                    <p className="text-sm text-white/40 truncate">{cat.description}</p>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center group-hover:bg-white/[0.1]">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center group-hover:bg-white/[0.1] flex-shrink-0">
                     <ChevronLeft className="w-4 h-4 rotate-180" />
                   </div>
                 </button>
@@ -402,10 +402,10 @@ function SettingGroup({ title, icon: Icon, children }: { title: string; icon: Re
 
 function SettingItem({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="flex-1 min-w-0">
         <p className="font-medium text-sm">{label}</p>
-        {description && <p className="text-xs text-white/40">{description}</p>}
+        {description && <p className="text-xs text-white/40 mt-0.5">{description}</p>}
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
@@ -414,9 +414,9 @@ function SettingItem({ label, description, children }: { label: string; descript
 
 function SegmentedControl({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
   return (
-    <div className="flex bg-white/[0.04] border border-white/[0.08] rounded-lg p-1">
+    <div className="flex flex-wrap bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 gap-1">
       {options.map((option) => (
-        <button key={option} onClick={() => onChange(option)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${value === option ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>
+        <button key={option} onClick={() => onChange(option)} className={`px-2 py-1 rounded-md text-xs sm:text-sm font-medium transition-all flex-1 min-w-[60px] ${value === option ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>
           {option.charAt(0).toUpperCase() + option.slice(1)}
         </button>
       ))}
