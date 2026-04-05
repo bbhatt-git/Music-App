@@ -1,7 +1,84 @@
-// Album Art Extraction Helper
+// Parse ID3v2 text tags from buffer
+function parseID3v2Tags(buffer: ArrayBufferLike): { title?: string; artist?: string; album?: string; year?: string; genre?: string } {
+  const bytes = new Uint8Array(buffer)
+  const dataView = new DataView(buffer)
+  const tags: { title?: string; artist?: string; album?: string; year?: string; genre?: string } = {}
+  
+  // Check for ID3v2 header
+  if (bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) {
+    return tags
+  }
+  
+  const tagSize = ((bytes[6] & 0x7F) << 21) | 
+                  ((bytes[7] & 0x7F) << 14) | 
+                  ((bytes[8] & 0x7F) << 7) | 
+                  (bytes[9] & 0x7F)
+  
+  let offset = 10
+  const end = Math.min(10 + tagSize, bytes.length)
+  
+  while (offset < end - 10) {
+    const frameId = String.fromCharCode(...bytes.slice(offset, offset + 4))
+    const frameSize = dataView.getUint32(offset + 4, false)
+    
+    if (frameSize === 0 || frameSize > 1000000) break
+    
+    // Text frames
+    if (['TIT2', 'TPE1', 'TALB', 'TYER', 'TCON', 'TDRC'].includes(frameId)) {
+      const encoding = bytes[offset + 10]
+      let text = ''
+      
+      try {
+        // Handle different encodings
+        if (encoding === 0) {
+          // ISO-8859-1
+          for (let i = offset + 11; i < offset + 10 + frameSize && bytes[i] !== 0; i++) {
+            text += String.fromCharCode(bytes[i])
+          }
+        } else if (encoding === 1 || encoding === 2) {
+          // UTF-16 - skip BOM if present
+          let start = offset + 11
+          if (bytes[start] === 0xFF && bytes[start + 1] === 0xFE) {
+            start += 2
+          }
+          const decoder = new TextDecoder('utf-16le')
+          text = decoder.decode(bytes.slice(start, offset + 10 + frameSize)).replace(/\x00/g, '')
+        } else if (encoding === 3) {
+          // UTF-8
+          const decoder = new TextDecoder('utf-8')
+          text = decoder.decode(bytes.slice(offset + 11, offset + 10 + frameSize)).replace(/\x00/g, '')
+        }
+      } catch (e) {
+        // Fallback: try to extract printable ASCII
+        for (let i = offset + 11; i < offset + 10 + frameSize && i < bytes.length; i++) {
+          const byte = bytes[i]
+          if (byte >= 32 && byte < 127) {
+            text += String.fromCharCode(byte)
+          } else if (byte === 0) {
+            break
+          }
+        }
+      }
+      
+      switch (frameId) {
+        case 'TIT2': tags.title = text; break
+        case 'TPE1': tags.artist = text; break
+        case 'TALB': tags.album = text; break
+        case 'TYER': 
+        case 'TDRC': tags.year = text; break
+        case 'TCON': tags.genre = text; break
+      }
+    }
+    
+    offset += 10 + frameSize
+  }
+  
+  return tags
+}
+
+// Album Art Extraction Helper - improved for all ID3 versions
 export async function extractAlbumArt(file: File): Promise<string | undefined> {
   return new Promise((resolve) => {
-    // Try to read ID3 tags for album art
     const reader = new FileReader()
     
     reader.onload = (e) => {
@@ -12,58 +89,109 @@ export async function extractAlbumArt(file: File): Promise<string | undefined> {
       }
       
       try {
-        // Look for APIC frame in ID3v2
         const dataView = new DataView(buffer)
         const bytes = new Uint8Array(buffer)
         
         // Check for ID3v2 header
         if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
-          // Parse ID3v2 tags to find APIC frame
+          const version = bytes[3]
           const tagSize = ((bytes[6] & 0x7F) << 21) | 
                          ((bytes[7] & 0x7F) << 14) | 
                          ((bytes[8] & 0x7F) << 7) | 
                          (bytes[9] & 0x7F)
           
           let offset = 10
-          const end = 10 + tagSize
+          const end = Math.min(10 + tagSize, bytes.length)
+          let bestImage: { data: Uint8Array; mimeType: string; type: number } | null = null
           
           while (offset < end - 10) {
-            const frameId = String.fromCharCode(...bytes.slice(offset, offset + 4))
-            const frameSize = dataView.getUint32(offset + 4, false)
+            let frameId: string
+            let frameSize: number
             
-            if (frameId === 'APIC') {
-              // Found album art frame
-              let picOffset = offset + 10
-              
-              // Skip text encoding (1 byte)
-              picOffset++
-              
-              // Read MIME type (null-terminated)
-              let mimeType = ''
-              while (bytes[picOffset] !== 0) {
-                mimeType += String.fromCharCode(bytes[picOffset])
+            if (version === 2) {
+              // ID3v2.2 - 3 character frame IDs
+              frameId = String.fromCharCode(...bytes.slice(offset, offset + 3))
+              frameSize = (bytes[offset + 3] << 16) | (bytes[offset + 4] << 8) | bytes[offset + 5]
+              if (frameId === 'PIC') {
+                // PIC frame format: encoding(1) + mime(3) + type(1) + desc + null + data
+                let picOffset = offset + 6
+                picOffset++ // Skip encoding
+                
+                // Read MIME type (3 chars for PIC)
+                const mimeType = String.fromCharCode(...bytes.slice(picOffset, picOffset + 3))
+                picOffset += 3
+                
+                const picType = bytes[picOffset++]
+                
+                // Skip description
+                while (bytes[picOffset] !== 0) picOffset++
                 picOffset++
+                
+                const imageData = bytes.slice(picOffset, offset + 6 + frameSize)
+                const fullMime = mimeType === 'JPG' ? 'image/jpeg' : mimeType === 'PNG' ? 'image/png' : `image/${mimeType.toLowerCase()}`
+                
+                if (!bestImage || picType === 3 || (picType === 0 && bestImage.type !== 3)) {
+                  bestImage = { data: imageData, mimeType: fullMime, type: picType }
+                }
               }
-              picOffset++ // Skip null terminator
+              offset += 6 + frameSize
+            } else {
+              // ID3v2.3/2.4 - 4 character frame IDs
+              frameId = String.fromCharCode(...bytes.slice(offset, offset + 4))
               
-              // Skip picture type (1 byte)
-              picOffset++
+              if (version === 4) {
+                // ID3v2.4 uses syncsafe integers
+                frameSize = ((bytes[offset + 4] & 0x7F) << 21) |
+                           ((bytes[offset + 5] & 0x7F) << 14) |
+                           ((bytes[offset + 6] & 0x7F) << 7) |
+                           (bytes[offset + 7] & 0x7F)
+              } else {
+                // ID3v2.3 uses normal big-endian
+                frameSize = dataView.getUint32(offset + 4, false)
+              }
               
-              // Skip description (null-terminated)
-              while (bytes[picOffset] !== 0) {
+              if (frameId === 'APIC') {
+                let picOffset = offset + 10
+                
+                // Skip text encoding (1 byte)
                 picOffset++
+                
+                // Read MIME type (null-terminated)
+                let mimeType = ''
+                while (bytes[picOffset] !== 0 && picOffset < offset + 10 + frameSize) {
+                  mimeType += String.fromCharCode(bytes[picOffset])
+                  picOffset++
+                }
+                picOffset++ // Skip null terminator
+                
+                // Picture type (1 byte) - 3 is cover front
+                const picType = bytes[picOffset++]
+                
+                // Skip description (null-terminated)
+                while (bytes[picOffset] !== 0 && picOffset < offset + 10 + frameSize) {
+                  picOffset++
+                }
+                picOffset++ // Skip null terminator
+                
+                const imageData = bytes.slice(picOffset, offset + 10 + frameSize)
+                
+                // Prefer cover front (type 3) or other (type 0)
+                if (!bestImage || picType === 3 || (picType === 0 && bestImage.type !== 3)) {
+                  bestImage = { data: imageData, mimeType: mimeType || 'image/jpeg', type: picType }
+                }
               }
-              picOffset++ // Skip null terminator
               
-              // Extract image data
-              const imageData = bytes.slice(picOffset, offset + 10 + frameSize)
-              const blob = new Blob([imageData], { type: mimeType || 'image/jpeg' })
-              const url = URL.createObjectURL(blob)
-              resolve(url)
-              return
+              offset += 10 + frameSize
             }
             
-            offset += 10 + frameSize
+            if (frameSize === 0 || frameSize > 10000000) break
+          }
+          
+          if (bestImage) {
+            const blob = new Blob([bestImage.data], { type: bestImage.mimeType })
+            const url = URL.createObjectURL(blob)
+            resolve(url)
+            return
           }
         }
         
@@ -75,7 +203,7 @@ export async function extractAlbumArt(file: File): Promise<string | undefined> {
     }
     
     reader.onerror = () => resolve(undefined)
-    reader.readAsArrayBuffer(file.slice(0, 500000)) // Read first 500KB for tags
+    reader.readAsArrayBuffer(file.slice(0, 1000000)) // Read first 1MB for larger album art
   })
 }
 
@@ -87,7 +215,7 @@ export async function extractMetadataFromFile(
 ) {
   const fileName = file.name.replace(/\.[^/.]+$/, '')
   
-  // Parse filename
+  // Default values
   let title = fileName
   let artist = 'Unknown Artist'
   let album = 'Unknown Album'
@@ -95,32 +223,49 @@ export async function extractMetadataFromFile(
   let year: string | undefined
   let genre: string | undefined
   
-  // Remove track numbers from start
-  let cleanName = fileName.replace(/^(\d+)[\.\s\-_]+/, (_match, num) => {
-    trackNumber = parseInt(num)
-    return ''
-  })
-  
-  // Parse Artist - Title format
-  const separators = /[-–—_~|]+/
-  const parts = cleanName.split(separators).map(p => p.trim()).filter(Boolean)
-  
-  if (parts.length >= 2) {
-    artist = parts[0]
-    if (parts.length >= 3) {
-      album = parts[1]
-      title = parts[2]
-    } else {
-      title = parts[1]
-      const pathParts = path.split('/').filter(Boolean)
-      if (pathParts.length > 1) {
-        album = pathParts[pathParts.length - 2]
-      }
-    }
+  // Try to read ID3 tags first
+  try {
+    const tagBuffer = await file.slice(0, 500000).arrayBuffer()
+    const id3Tags = parseID3v2Tags(tagBuffer)
+    
+    if (id3Tags.title) title = id3Tags.title
+    if (id3Tags.artist) artist = id3Tags.artist
+    if (id3Tags.album) album = id3Tags.album
+    if (id3Tags.year) year = id3Tags.year
+    if (id3Tags.genre) genre = id3Tags.genre
+  } catch (e) {
+    console.warn('ID3 tag reading failed:', e)
   }
   
-  // Clean up title
-  title = title.replace(/\s*(\([^)]*\)|\[[^\]]*\])\s*$/, '').trim()
+  // If no ID3 tags, parse from filename
+  if (title === fileName && artist === 'Unknown Artist') {
+    // Remove track numbers from start
+    let cleanName = fileName.replace(/^(\d+)[\.\s\-_]+/, (_match, num) => {
+      trackNumber = parseInt(num)
+      return ''
+    })
+    
+    // Parse Artist - Title format
+    const separators = /[-–—_~|]+/
+    const parts = cleanName.split(separators).map(p => p.trim()).filter(Boolean)
+    
+    if (parts.length >= 2) {
+      artist = parts[0]
+      if (parts.length >= 3) {
+        album = parts[1]
+        title = parts[2]
+      } else {
+        title = parts[1]
+        const pathParts = path.split('/').filter(Boolean)
+        if (pathParts.length > 1) {
+          album = pathParts[pathParts.length - 2]
+        }
+      }
+    }
+    
+    // Clean up title
+    title = title.replace(/\s*(\([^)]*\)|\[[^\]]*\])\s*$/, '').trim()
+  }
   
   // Get duration
   let duration = '0:00'
@@ -154,13 +299,13 @@ export async function extractMetadataFromFile(
     console.warn('Duration extraction failed:', e)
   }
   
-  // Generate fallback art
-  const hash = artist.split('').reduce((acc, char) => {
+  // Generate fallback art - use title's first letter
+  const hash = title.split('').reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc)
   }, 0)
   const hue = Math.abs(hash % 360)
   const artColor = `hsl(${hue}, 60%, 40%)`
-  const artLetter = artist.charAt(0).toUpperCase()
+  const artLetter = title.charAt(0).toUpperCase() || '♪'
   
   // Extract album art
   let albumArtUrl: string | undefined

@@ -208,11 +208,11 @@ function App() {
           </div>
         </main>
 
-        <div className="fixed bottom-0 left-0 right-0 z-40 md:left-[280px]">
+        <div className="fixed bottom-[72px] left-0 right-0 z-[60] md:left-[280px] md:bottom-0">
           <PlayerBar currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} onExpand={() => setShowFullPlayer(true)} isMobile={isMobile} settings={viewSettings} />
         </div>
 
-        {isMobile && <MobileNav currentView={currentView} onViewChange={setCurrentView} />}
+        {isMobile && <div className="z-50"><MobileNav currentView={currentView} onViewChange={setCurrentView} /></div>}
       </div>
 
       <FullPlayer isOpen={showFullPlayer} onClose={() => setShowFullPlayer(false)} currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} />
