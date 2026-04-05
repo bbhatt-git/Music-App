@@ -202,7 +202,7 @@ function App() {
                 {currentView === 'library' && <LibraryView songs={songs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} isMobile={isMobile} settings={viewSettings} />}
                 {currentView === 'search' && <SearchView songs={songs} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} />}
                 {currentView === 'liked' && <LikedView songs={songs.filter(s => likedSongs.includes(s.id))} currentSong={currentSong} isPlaying={isPlaying} onPlaySong={handlePlaySong} />}
-                {currentView === 'settings' && <SettingsView settings={settings} onUpdateSetting={updateSetting} onReset={resetSettings} onImport={() => setCurrentView('search')} />}
+                {currentView === 'settings' && <SettingsView settings={settings} onUpdateSetting={updateSetting} onReset={resetSettings} onImport={() => setCurrentView('search')} onRefresh={refreshLibrary} isRefreshing={isScanning} />}
               </motion.div>
             </AnimatePresence>
           </div>

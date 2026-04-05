@@ -4,7 +4,7 @@ import {
   Palette, Layout, PlayCircle, Image as ImageIcon, Sparkles, Zap, 
   Monitor, Eye, Columns, Sun, Accessibility, Cpu, Terminal, Database,
   RotateCcw, FolderPlus, ChevronLeft, Volume2, Type, Grid3X3, List,
-  Keyboard
+  Keyboard, RefreshCw
 } from 'lucide-react'
 import type { Settings } from '../hooks/useSettings'
 
@@ -15,6 +15,8 @@ interface SettingsViewProps {
   onUpdateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void
   onReset: () => void
   onImport: () => void
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
 const CATEGORIES: { id: Category; label: string; icon: React.ElementType; description: string; count: number }[] = [
@@ -28,7 +30,7 @@ const CATEGORIES: { id: Category; label: string; icon: React.ElementType; descri
   { id: 'advanced', label: 'Advanced', icon: Cpu, description: 'Developer, performance', count: 6 },
 ]
 
-export default function SettingsView({ settings, onUpdateSetting, onReset, onImport }: SettingsViewProps) {
+export default function SettingsView({ settings, onUpdateSetting, onReset, onImport, onRefresh, isRefreshing }: SettingsViewProps) {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
@@ -132,7 +134,7 @@ export default function SettingsView({ settings, onUpdateSetting, onReset, onImp
             {activeCategory === 'animations' && <AnimationSettings settings={settings} onUpdate={onUpdateSetting} />}
             {activeCategory === 'behavior' && <BehaviorSettings settings={settings} onUpdate={onUpdateSetting} />}
             {activeCategory === 'accessibility' && <AccessibilitySettings settings={settings} onUpdate={onUpdateSetting} />}
-            {activeCategory === 'advanced' && <AdvancedSettings settings={settings} onUpdate={onUpdateSetting} onImport={onImport} />}
+            {activeCategory === 'advanced' && <AdvancedSettings settings={settings} onUpdate={onUpdateSetting} onImport={onImport} onRefresh={onRefresh} isRefreshing={isRefreshing} />}
           </motion.div>
         )}
       </AnimatePresence>
@@ -363,7 +365,7 @@ function AccessibilitySettings({ settings, onUpdate }: { settings: Settings; onU
   )
 }
 
-function AdvancedSettings({ settings, onUpdate, onImport }: { settings: Settings; onUpdate: <K extends keyof Settings>(key: K, value: Settings[K]) => void; onImport: () => void }) {
+function AdvancedSettings({ settings, onUpdate, onImport, onRefresh, isRefreshing }: { settings: Settings; onUpdate: <K extends keyof Settings>(key: K, value: Settings[K]) => void; onImport: () => void; onRefresh?: () => void; isRefreshing?: boolean }) {
   return (
     <div className="space-y-6">
       <SettingGroup title="Developer" icon={Terminal}>
@@ -376,11 +378,24 @@ function AdvancedSettings({ settings, onUpdate, onImport }: { settings: Settings
         <SettingItem label="Clear Cache on Exit"><Toggle value={settings.clearCacheOnExit} onChange={(v) => onUpdate('clearCacheOnExit', v)} /></SettingItem>
       </SettingGroup>
 
-      <SettingGroup title="Library" icon={Database}>
-        <button onClick={onImport} className="flex items-center gap-2 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08]">
-          <FolderPlus className="w-5 h-5" />
-          <span>Import Music</span>
-        </button>
+      <SettingGroup title="Library Management" icon={Database}>
+        <div className="flex flex-col gap-3">
+          <button onClick={onImport} className="flex items-center gap-2 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] transition-all">
+            <FolderPlus className="w-5 h-5" />
+            <span>Import New Music Folder</span>
+          </button>
+          {onRefresh && (
+            <button 
+              onClick={onRefresh} 
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh Library'}</span>
+            </button>
+          )}
+          <p className="text-xs text-white/40 mt-1">Auto-refreshes every 5 minutes when app is open</p>
+        </div>
       </SettingGroup>
     </div>
   )
