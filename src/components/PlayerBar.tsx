@@ -180,13 +180,15 @@ export default function PlayerBar({
           )}
 
           {/* Like */}
-          {showLike && (<motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onToggleLike}
-            className={`p-2.5 rounded-full transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-white/40 hover:text-white hover:bg-white/[0.08]'}`}
-          >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-          </motion.button>
+          {showLike && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={onToggleLike}
+              className={`p-2.5 rounded-full transition-all ${isLiked ? 'text-red-500 bg-red-500/10' : 'text-white/40 hover:text-white hover:bg-white/[0.08]'}`}
+            >
+              <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+            </motion.button>
+          )}
         </div>
       </div>
     </div>

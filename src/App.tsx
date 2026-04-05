@@ -119,7 +119,11 @@ function App() {
     animationsEnabled: settings.animationsEnabled,
     animationSpeed: settings.animationSpeed,
     hoverEffects: settings.hoverEffects,
-    playingAnimation: settings.playingAnimation
+    playingAnimation: settings.playingAnimation,
+    // Player settings
+    showLikeButton: settings.showLikeButton,
+    showProgressBar: settings.showProgressBar,
+    showTimeDisplay: settings.showTimeDisplay
   }
 
   if (isLoading && !hasLibrary) {
@@ -204,7 +208,7 @@ function App() {
         </main>
 
         <div className="fixed bottom-0 left-0 right-0 z-40 md:left-[280px]">
-          <PlayerBar currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} onExpand={() => setShowFullPlayer(true)} isMobile={isMobile} />
+          <PlayerBar currentSong={currentSong} isPlaying={isPlaying} progress={progress} duration={duration} isLiked={currentSong ? likedSongs.includes(currentSong.id) : false} onTogglePlay={togglePlay} onNext={nextSong} onPrev={prevSong} onSeek={seekTo} onToggleLike={() => currentSong && toggleLike(currentSong.id)} onExpand={() => setShowFullPlayer(true)} isMobile={isMobile} settings={viewSettings} />
         </div>
 
         {isMobile && <MobileNav currentView={currentView} onViewChange={setCurrentView} />}
