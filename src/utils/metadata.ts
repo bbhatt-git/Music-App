@@ -1,5 +1,5 @@
 // Parse ID3v2 text tags from buffer
-function parseID3v2Tags(buffer: ArrayBufferLike): { title?: string; artist?: string; album?: string; year?: string; genre?: string } {
+function parseID3v2Tags(buffer: any): { title?: string; artist?: string; album?: string; year?: string; genre?: string } {
   const bytes = new Uint8Array(buffer)
   const dataView = new DataView(buffer)
   const tags: { title?: string; artist?: string; album?: string; year?: string; genre?: string } = {}
@@ -188,7 +188,9 @@ export async function extractAlbumArt(file: File): Promise<string | undefined> {
           }
           
           if (bestImage) {
-            const blob = new Blob([bestImage.data], { type: bestImage.mimeType })
+            // Copy to new buffer to ensure standard ArrayBuffer for Blob compatibility
+            const copiedData = new Uint8Array(bestImage.data)
+            const blob = new Blob([copiedData], { type: bestImage.mimeType })
             const url = URL.createObjectURL(blob)
             resolve(url)
             return
@@ -225,7 +227,7 @@ export async function extractMetadataFromFile(
   
   // Try to read ID3 tags first
   try {
-    const tagBuffer = await file.slice(0, 500000).arrayBuffer()
+    const tagBuffer = await file.slice(0, 500000).arrayBuffer() as ArrayBuffer
     const id3Tags = parseID3v2Tags(tagBuffer)
     
     if (id3Tags.title) title = id3Tags.title
